@@ -7,7 +7,7 @@ const safeParse = <T extends z.ZodType>(schema: T, body: unknown) => {
     const message = result.error.issues
       .map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`)
       .join(", ");
-    throw new AppError(400, "INVALID_ADMIN_NUMBER", message);
+    throw new AppError(400, "VALIDATION_ERROR", message);
   }
 
   return {
