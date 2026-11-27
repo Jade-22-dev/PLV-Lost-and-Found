@@ -81,7 +81,7 @@ export const create = async ({
     return findByid(userId);
   } catch (error) {
     await connection.rollback();
-    if (error.code === "ER_DUP_ENTRY") throw error;
+    throw error;
   } finally {
     connection.release();
   }
