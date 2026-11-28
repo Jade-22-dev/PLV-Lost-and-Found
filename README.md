@@ -1,4 +1,4 @@
-# IntegrITy Backend
+# IntegrITy — Campus Lost & Found System
 
 ![Node.js](https://img.shields.io/badge/Node.js-20.19%2B-339933?logo=node.js&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
@@ -6,9 +6,10 @@
 ![MySQL](https://img.shields.io/badge/MySQL-8-4479A1?logo=mysql&logoColor=white)
 ![Status](https://img.shields.io/badge/status-in%20development-orange)
 
-RESTful API for **IntegrITy**, the Campus Lost & Found System of Pamantasan ng Lungsod ng Valenzuela (PLV), serving the Maysan, Annex, and CPAG campuses. The system allows students, faculty, and administrators to report lost items, log found items, and file and process claims, all backed by a normalized MySQL database.
+**IntegrITy** is a Campus Lost & Found System developed for Pamantasan ng Lungsod ng Valenzuela (PLV). It aims to give students, faculty, and administrators one centralized place to report lost items, log found items, and manage item claims.
 
-> **Project status:** Under active development. The admin module (registration and request validation) is implemented. The remaining modules are scaffolded and tracked in the [Roadmap](#roadmap).
+> [!NOTE]
+> **Project status: under active development.** The database schema and backend skeleton are in place, and admin registration is the only working API endpoint. Admin login is scaffolded but not routed yet, and the other backend modules are empty placeholders. This repository currently contains the backend only; a `frontend/` directory will be added when frontend development starts.
 
 ## Table of Contents
 
@@ -21,7 +22,6 @@ RESTful API for **IntegrITy**, the Campus Lost & Found System of Pamantasan ng L
 - [Project Structure](#project-structure)
 - [Database](#database)
 - [API Reference](#api-reference)
-- [Error Handling](#error-handling)
 - [Roadmap](#roadmap)
 - [Known Limitations](#known-limitations)
 - [Development Workflow](#development-workflow)
@@ -29,95 +29,115 @@ RESTful API for **IntegrITy**, the Campus Lost & Found System of Pamantasan ng L
 
 ## Features
 
-- Admin registration gated by a pre-approved list of admin numbers
+**Implemented**
+
+- Express 5 and TypeScript setup using ES Modules
+- MySQL connection pool (`mysql2/promise`) with a connectivity check on startup
+- Relational schema of 15 tables, with seed data for departments, courses, and a sample admin number
+- Admin registration restricted to pre-approved admin numbers
 - Password hashing with bcrypt (12 salt rounds)
-- Schema-based request validation with Zod
-- Centralized error handling with a consistent JSON error format
-- Transactional multi-table writes for data integrity
-- Normalized relational schema covering users, academic structure, items, reports, images, and claims
-- Cloudinary integration prepared for item image storage
+- Transactional registration: the user record, admin record, and admin-number update succeed or roll back together
+- Request validation with Zod and a consistent error response format
+- Centralized error-handling and 404 middleware
+- Modular, feature-based project structure
+
+**Scaffolded (not usable yet)**
+
+- Admin login (controller and service exist, but the route is not registered)
+- Member registration and login schemas
+- Cloudinary configuration, `multer`, and `jsonwebtoken` (installed, not wired into any feature)
 
 ## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
-| Runtime | Node.js (ES Modules) |
+| Runtime | Node.js 20.19+ (ES Modules) |
 | Language | TypeScript 5.9 |
-| Framework | Express 5 |
-| Database | MySQL via `mysql2/promise` (connection pool) |
+| Backend framework | Express 5 |
+| Database | MySQL 8 with `mysql2` |
 | Validation | Zod 4 |
-| Authentication | bcrypt, jsonwebtoken |
-| File handling | Multer, Cloudinary |
-| Tooling | tsx, ESLint 10, typescript-eslint |
+| Password hashing | bcrypt |
+| Authentication | `jsonwebtoken` (installed, not used yet) |
+| File upload | Multer and Cloudinary (installed, not used yet) |
+| Development tooling | tsx, ESLint 10, typescript-eslint |
 
 ## Architecture
 
-Each feature module follows a layered design:
+The backend follows a layered, feature-based design. Each feature lives in `src/modules/<feature>/` and follows this flow:
 
-```
+```text
 Request → Routes → Controller → Service → Repository → MySQL
 ```
 
 | Layer | Responsibility |
 | --- | --- |
-| **Routes** | Map HTTP endpoints to controller handlers |
-| **Controller** | Validate input with Zod and shape the HTTP response |
-| **Service** | Enforce business rules; throw `AppError` on failure |
-| **Repository** | Run parameterized SQL queries and manage transactions |
+| Routes | Define endpoints and connect them to controller handlers |
+| Controller | Validate the request body (Zod) and send the HTTP response |
+| Service | Apply business rules (for example, admin-number checks and password hashing) |
+| Repository | Run SQL queries and transactions against MySQL |
+
+Errors are thrown as `AppError` instances and turned into JSON responses by the error-handling middleware. Express 5 forwards errors from async handlers automatically, so controllers do not need `try/catch`.
+
+Only the `admin` module follows this full flow so far.
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js **20.19 or later**
-- MySQL **8.0 or later**
-- A Cloudinary account (required once image upload is enabled)
+- Node.js 20.19 or later (required by ESLint 10)
+- npm
+- MySQL 8.0.16 or later (earlier versions do not enforce the schema's `CHECK` constraints)
 
 ### Installation
 
+**1. Clone the repository and go to the backend**
+
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Jade-22-dev/PLV-Lost-and-Found.git
-cd PLV-Lost-and-Found
+cd PLV-Lost-and-Found/backend
+```
 
-# 2. Install dependencies
+**2. Install dependencies**
+
+```bash
 npm install
+```
 
-# 3. Create the database and tables
-mysql -u <user> -p < database/schema.sql
+**3. Create the database**
 
-# 4. Create your .env file from the template, then fill in the values
-cp .env.example .env
+From inside `backend/`, run the schema script:
 
-# 5. Start the development server
+```bash
+mysql -u <your-username> -p -e "source database/schema.sql"
+```
+
+You can also open and run `database/schema.sql` in MySQL Workbench or another MySQL client.
+
+> [!WARNING]
+> The schema starts with `DROP DATABASE IF EXISTS plvIntegrity;`. Running it deletes the existing `plvIntegrity` database and recreates it. Back up any important data first.
+
+**4. Configure environment variables**
+
+Create a `.env` file inside `backend/` (see [Environment Variables](#environment-variables)) and set the values for your local MySQL setup.
+
+**5. Start the development server**
+
+```bash
 npm run dev
 ```
 
-The API is served at `http://localhost:5000` by default.
+If everything is configured correctly, the console shows:
 
-> **Warning:** `database/schema.sql` begins with `DROP DATABASE IF EXISTS plvIntegrity;`. Running it deletes all existing data in that database. Do not run it against production.
-
-### Required seed data
-
-Registration looks up departments by code and only accepts pre-approved admin numbers. Insert the following before testing:
-
-```sql
-USE plvIntegrity;
-
-INSERT INTO departments (department_code, department_name) VALUES
-  ('CEIT', 'College of Engineering and Information Technology'),
-  ('COED', 'College of Education'),
-  ('CABA', 'College of Accountancy and Business Administration'),
-  ('CAS',  'College of Arts and Sciences'),
-  ('CPAG', 'College of Public Administration and Governance');
-
-INSERT INTO allowed_admin_numbers (admin_number, full_name)
-VALUES ('ADMIN-0001', 'Juan Dela Cruz');
+```text
+Database is connected
+Server is running on PORT 5000
 ```
+
+If the database connection fails, the server logs the error code and message, then exits.
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` in the project root and fill in the values:
+The `.env` file belongs in the `backend/` directory, and the server should be started from that directory.
 
 ```env
 # Server
@@ -130,7 +150,7 @@ DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=plvIntegrity
 
-# Cloudinary
+# Cloudinary (not used yet)
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_SECRET_KEY=your_api_secret
@@ -138,91 +158,146 @@ CLOUDINARY_SECRET_KEY=your_api_secret
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `PORT` | No | `5000` | Port the HTTP server listens on |
-| `DB_HOST` | Yes | n/a | MySQL host |
+| `PORT` | No | `5000` | Port the API listens on |
+| `DB_HOST` | Yes | — | MySQL host |
 | `DB_PORT` | No | `3306` | MySQL port |
-| `DB_USER` | Yes | n/a | MySQL user |
-| `DB_PASSWORD` | Yes | n/a | MySQL password |
-| `DB_NAME` | Yes | n/a | Database name (`plvIntegrity`) |
-| `CLOUDINARY_CLOUD_NAME` | For uploads | n/a | Cloudinary cloud name |
-| `CLOUDINARY_API_KEY` | For uploads | n/a | Cloudinary API key |
-| `CLOUDINARY_SECRET_KEY` | For uploads | n/a | Cloudinary API secret |
+| `DB_USER` | Yes | — | MySQL user |
+| `DB_PASSWORD` | Yes | — | MySQL password |
+| `DB_NAME` | Yes | — | Database name (`plvIntegrity`) |
+| `CLOUDINARY_CLOUD_NAME` | Not yet | — | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Not yet | — | Cloudinary API key |
+| `CLOUDINARY_SECRET_KEY` | Not yet | — | Cloudinary API secret |
 
-Never commit your `.env` file. Make sure it is listed in `.gitignore`.
+Never commit `.env` or expose database passwords, API keys, or other credentials.
 
 ## Available Scripts
 
+Run these commands from the `backend/` directory.
+
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Start the server in watch mode using `tsx` |
-| `npx eslint .` | Run the linter |
-| `npx tsc --noEmit` | Type-check the project without emitting files |
+| `npm run dev` | Start the development server with `tsx watch` (auto-restarts on changes) |
+| `npx tsc --noEmit` | Type-check the project without generating output files |
+| `npx eslint .` | Run ESLint |
+
+`npm test` is still a placeholder, and there is no production build or start script yet.
 
 ## Project Structure
 
-```
+```text
 PLV-Lost-and-Found/
-├── database/
-│   └── schema.sql                # MySQL schema (15 tables)
-├── src/
-│   ├── config/
-│   │   ├── cloudinary.ts         # Cloudinary client
-│   │   └── db.ts                 # MySQL connection pool
-│   ├── middlewares/
-│   │   ├── errorhandler.ts       # Global error handler
-│   │   └── notFound.ts           # 404 handler
-│   ├── modules/
-│   │   ├── admin/                # Controller, service, repository, routes, types
-│   │   ├── auth/                 # Planned
-│   │   ├── claims/               # Planned
-│   │   ├── foundItems/           # Planned
-│   │   ├── items/                # Planned
-│   │   ├── lostItems/            # Planned
-│   │   └── users/                # Planned
-│   ├── schemas/                  # Zod validation schemas
-│   ├── utils/
-│   │   ├── AppError.ts           # Custom operational error
-│   │   └── safeParse.ts          # Zod wrapper that throws AppError
-│   ├── app.ts                    # Express app configuration
-│   └── server.ts                 # Application entry point
-├── eslint.config.js
-├── package.json
-└── tsconfig.json
+├── backend/
+│   ├── database/
+│   │   └── schema.sql                # Tables and seed data
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── cloudinary.ts         # Cloudinary client setup
+│   │   │   └── db.ts                 # MySQL connection pool
+│   │   ├── middlewares/
+│   │   │   ├── errorhandler.ts       # Centralized error responses
+│   │   │   └── notFound.ts           # 404 handler
+│   │   ├── modules/
+│   │   │   ├── admin/
+│   │   │   │   ├── types/
+│   │   │   │   │   └── admin.type.ts
+│   │   │   │   ├── admin.controller.ts
+│   │   │   │   ├── admin.repository.ts
+│   │   │   │   ├── admin.routes.ts
+│   │   │   │   └── admin.service.ts
+│   │   │   ├── auth/                 # Placeholder (empty)
+│   │   │   ├── claims/               # Placeholder (empty)
+│   │   │   ├── foundItems/           # Placeholder (empty)
+│   │   │   ├── items/                # Placeholder (empty)
+│   │   │   ├── lostItems/            # Placeholder (empty)
+│   │   │   └── users/                # Placeholder (empty)
+│   │   ├── schemas/
+│   │   │   ├── admin.schema.ts       # Admin register/login schemas
+│   │   │   └── member.schema.ts      # Member register/login schemas (not used yet)
+│   │   ├── utils/
+│   │   │   ├── AppError.ts           # Custom error class
+│   │   │   └── safeParse.ts          # Zod parsing helper
+│   │   ├── app.ts                    # Express app and route mounting
+│   │   └── server.ts                 # Entry point (DB check, then listen)
+│   ├── .env                          # Local only; do not commit
+│   ├── eslint.config.js
+│   ├── LICENSE
+│   ├── package-lock.json
+│   ├── package.json
+│   └── tsconfig.json
+└── README.md
 ```
+
+### Module Status
+
+| Location | Status |
+| --- | --- |
+| `modules/admin/` | Registration implemented; login scaffolded but not routed |
+| `modules/auth/`, `claims/`, `foundItems/`, `items/`, `lostItems/`, `users/` | Empty placeholders |
+| `schemas/` | Admin and member schemas defined; member schemas not used by any route yet |
+| `middlewares/` | Error handler and 404 handler in use |
+| `utils/` | `AppError` and `safeParse` in use |
+| `config/` | `db.ts` in use; `cloudinary.ts` configured but not imported anywhere yet |
 
 ## Database
 
-**Database name:** `plvIntegrity` (`utf8mb4`, `utf8mb4_unicode_ci`)
+| Setting | Value |
+| --- | --- |
+| Database name | `plvIntegrity` |
+| Character set | `utf8mb4` |
+| Collation | `utf8mb4_unicode_ci` |
+| Schema file | `backend/database/schema.sql` |
 
-| Domain | Tables |
+### Tables
+
+The schema defines 15 tables:
+
+| Category | Tables |
 | --- | --- |
 | Academic structure | `departments`, `courses`, `sections` |
+| Locations | `locations` |
 | Users and roles | `users`, `students`, `faculties`, `admins`, `allowed_admin_numbers` |
-| Inventory | `categories`, `items`, `item_images`, `locations` |
-| Reports | `lost_items`, `found_items` |
+| Inventory | `categories`, `items`, `item_images` |
+| Lost and found reports | `lost_items`, `found_items` |
 | Claims | `claims` |
 
-**Design notes**
+### Design Notes
 
-- `users` is the base table. `students`, `faculties`, and `admins` extend it through a unique `user_id` foreign key.
-- Admin sign-up is restricted to numbers listed in `allowed_admin_numbers` that are not yet registered.
-- `item_images` stores the Cloudinary `image_url` and `public_id`, with an `is_primary` flag.
-- Foreign keys use `ON DELETE CASCADE`, except `users.department_id`, which uses `ON DELETE SET NULL`.
-- Roles, item conditions, and staff types are enforced with `CHECK` constraints.
+- `users` is the base table for Member, Admin, and Faculty accounts. `user_role` is restricted by a `CHECK` constraint, `email` is unique, and `department_id` is optional.
+- `students`, `faculties`, and `admins` each extend `users` one-to-one through a unique `user_id` foreign key.
+- `students` reference both a course and a section. Sections belong to courses, and courses belong to departments.
+- `allowed_admin_numbers` stores the pre-approved admin numbers. `is_registered` is set to true once an admin registers with that number.
+- `items` holds the common item information. `lost_items` and `found_items` hold report-specific details and link to an item, the reporting user, and a location. A `lost_items` row is unique per item.
+- `item_images` stores image URLs and Cloudinary public IDs, with an `is_primary` flag.
+- `claims` connects a found item with the user claiming it and tracks the claim status, contact number, date filed, and date returned.
+- Foreign keys mostly use `ON DELETE CASCADE`. The exception is `users.department_id`, which uses `ON DELETE SET NULL`.
+- Other `CHECK` constraints: `staff_type` (`Academic`, `Non-Academic`) and `item_condition` (`Good`, `Damage`, `Scratched`).
+
+### Seed Data
+
+Running `schema.sql` also inserts:
+
+- 5 departments: CEIT, COED, CABA, CAS, CPAG
+- 17 courses across those departments
+- 1 sample admin number: `ADMIN-0001` (Juan Dela Cruz)
+
+`locations`, `categories`, and `sections` are not seeded yet. Replace the sample admin number with real pre-approved numbers before real use.
 
 ## API Reference
 
-**Base URL:** `/api/v1`
+**Base URL:** `http://localhost:5000/api/v1` (with the default `PORT`)
 
-All request and response bodies are JSON. Successful responses are wrapped in a `data` object.
+Requests and responses use JSON. Successful responses are wrapped in `{ "data": ... }`.
 
-### Admin
+| Method | Endpoint | Description | Status |
+| --- | --- | --- | --- |
+| `POST` | `/admin/register` | Register an admin account | Available |
+| — | Admin login | Verify credentials and issue a token | Not routed yet |
 
-#### Register an admin
+### Register an Admin
 
 `POST /api/v1/admin/register`
 
-Creates a new admin account. The `idNumbers` value must exist in `allowed_admin_numbers` and must not be registered yet.
+Creates an admin account for a pre-approved admin number.
 
 **Request body**
 
@@ -232,23 +307,21 @@ Creates a new admin account. The `idNumbers` value must exist in `allowed_admin_
   "surname": "Dela Cruz",
   "idNumbers": "ADMIN-0001",
   "department": "CEIT",
-  "email": "juan@example.com",
-  "passwords": "supersecret123"
+  "email": "juan.delacruz@example.com",
+  "passwords": "StrongPass123"
 }
 ```
 
-**Validation**
-
-| Field | Rule |
+| Field | Rules |
 | --- | --- |
-| `firstName` | 2 to 20 characters |
-| `surname` | 2 to 20 characters |
-| `idNumbers` | Up to 11 characters |
+| `firstName` | String, trimmed, 2 to 20 characters |
+| `surname` | String, trimmed, 2 to 20 characters |
+| `idNumbers` | String, trimmed, up to 11 characters; must exist in `allowed_admin_numbers` and not be registered yet |
 | `department` | One of `CEIT`, `COED`, `CABA`, `CAS`, `CPAG` |
-| `email` | Valid email, up to 255 characters (lowercased) |
-| `passwords` | 8 to 40 characters |
+| `email` | Valid email, trimmed and lowercased, up to 255 characters; must be unique |
+| `passwords` | String, trimmed, 8 to 40 characters; stored as a bcrypt hash |
 
-**Response: `201 Created`**
+**Success response: `201 Created`**
 
 ```json
 {
@@ -257,101 +330,116 @@ Creates a new admin account. The `idNumbers` value must exist in `allowed_admin_
     "user_role": "ADMIN",
     "firstname": "Juan",
     "lastname": "Dela Cruz",
-    "create_at": "2026-11-25 10:00:00"
+    "create_at": "2026-11-28 12:00:00"
   }
 }
 ```
 
-#### Log in as an admin
+### Error Responses
 
-`POST /api/v1/admin/login`
-
-**Request body**
-
-```json
-{
-  "email": "juan@example.com",
-  "idNumbers": "ADMIN-0001",
-  "passwords": "supersecret123"
-}
-```
-
-> This endpoint is partially implemented. See [Known Limitations](#known-limitations).
-
-## Error Handling
-
-All errors follow the same structure:
+All errors use this shape:
 
 ```json
 {
   "error": {
-    "code": "INVALID_ADMIN_NUMBER",
-    "message": "Invalid or already registered admin number."
+    "code": "ERROR_CODE",
+    "message": "Human-readable message"
   }
 }
 ```
 
-| Code | HTTP Status | Description |
+| Status | Code | When it happens |
 | --- | --- | --- |
-| `INVALID JSON` | 400 | The request body is not valid JSON |
-| `INVALID_ADMIN_NUMBER` | 400 | Validation failed, or the admin number is invalid or already registered |
-| `INVALID_DEPARTMENT_ID` | 400 | The department code does not exist |
-| `ROUTE_NOT_FOUND` | 404 | No route matches the request |
-| `INTERNAL_ERROR` | 500 | Unexpected server error |
+| 400 | `VALIDATION_ERROR` | The request body fails schema validation |
+| 400 | `INVALID_ADMIN_NUMBER` | The admin number is not pre-approved or is already registered |
+| 400 | `INVALID_DEPARTMENT_ID` | The department does not exist in the database |
+| 400 | `INVALID JSON` | The request body is not valid JSON |
+| 404 | `ROUTE_NOT_FOUND` | The requested route does not exist |
+| 409 | `EMAIL_TAKEN` | A duplicate-entry database error occurred (for example, the email is already registered) |
+| 500 | `INTERNAL_ERROR` | Unexpected server error |
 
 ## Roadmap
 
-Progress is tracked per module. Items are checked off in the same commit that completes the feature.
+### Backend Foundation
 
-**Admin**
-- [x] Admin registration with allow-listed admin numbers
-- [ ] Admin login (password verification and JWT issuing)
-- [ ] `GET /admin/me`
+- [x] Create backend project structure
+- [x] Set up Express and TypeScript
+- [x] Configure environment variables
+- [x] Set up the MySQL connection
+- [x] Create the initial relational database schema
+- [x] Add centralized error handling and Zod validation helper
+- [ ] Add authentication middleware and role-based access control
 
-**Auth**
-- [ ] JWT authentication middleware
-- [ ] Role-based access control (`Member`, `Admin`, `Faculty`)
+### Admin
 
-**Users**
-- [ ] Student registration and login
+- [x] Admin registration
+- [ ] Admin login and password verification
+- [ ] JWT issuing
+
+### Authentication and Users
+
+- [ ] Member registration and login
 - [ ] Faculty registration and login
+- [ ] User profile endpoints
 
-**Items**
-- [ ] Item CRUD and category management
-- [ ] Image upload via Multer and Cloudinary
+### Items and Reports
 
-**Lost and found reports**
+- [ ] Item and category management
 - [ ] Lost item reports
 - [ ] Found item reports
+- [ ] Image uploads using Multer and Cloudinary
 
-**Claims**
-- [ ] File a claim
-- [ ] Admin review, approval, and return workflow
+### Claims
 
-**Quality**
-- [ ] Automated tests
-- [ ] API documentation (OpenAPI)
+- [ ] Claim submission
+- [ ] Claim review and verification
+- [ ] Claim status management
+
+### Frontend
+
+- [ ] Initialize the frontend application
+- [ ] Authentication pages
+- [ ] Member portal
+- [ ] Admin portal
+- [ ] Lost and found item interfaces
+- [ ] Claims and verification interfaces
+- [ ] Integrate the frontend with the backend API
+
+### Quality and Documentation
+
+- [ ] Add automated tests
+- [ ] Add production build and start scripts
+- [ ] Add deployment configuration
+- [ ] Expand the API reference as endpoints are completed
 
 ## Known Limitations
 
-- Admin login only checks that the admin number is registered. Password verification and token issuing are not implemented yet.
-- Only the `/api/v1/admin` routes are mounted in `app.ts`.
-- The `.env` values for Cloudinary are loaded, but no upload route exists yet.
+- The project is under active development, and only the admin registration endpoint is live.
+- Admin login is scaffolded but not routed, and it does not verify passwords or issue tokens yet.
+- There is no authentication middleware or role-based access control yet.
+- The `auth`, `claims`, `foundItems`, `items`, `lostItems`, and `users` module folders are empty.
+- Member schemas exist but are not connected to any route.
+- Cloudinary, Multer, and `jsonwebtoken` are installed or configured, but image upload and token features are not implemented.
+- There are no automated tests, and no production build or start script.
+- The database schema is an initial version and may change. `locations`, `categories`, and `sections` have no seed data yet.
+- The frontend has not been started and is not part of this repository yet.
 
 ## Development Workflow
 
-- Work on one feature at a time and commit once the feature is complete.
-- Follow [Conventional Commits](https://www.conventionalcommits.org/):
+- Run backend commands from the `backend/` directory.
+- Keep `.env`, credentials, and `node_modules` out of Git.
+- Use clear, feature-focused commit messages.
+- Update this README when the project structure, setup process, database schema, or implemented features change.
 
-  ```
-  feat(admin): add login with password verification and JWT
-  fix(db): await connection check on startup
-  docs(readme): update roadmap
-  ```
+**Example commit messages**
 
-- Run `npx eslint .` and `npx tsc --noEmit` before committing.
-- Update the [Roadmap](#roadmap) and [Known Limitations](#known-limitations) in the same commit as the feature.
+```text
+feat(admin): implement admin registration
+fix(db): handle database connection errors
+docs(readme): update project documentation
+refactor(backend): organize shared utilities
+```
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](backend/LICENSE).

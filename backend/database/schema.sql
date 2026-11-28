@@ -170,3 +170,46 @@ CREATE TABLE claims (
     CONSTRAINT fk_found_item_claims FOREIGN KEY (found_item_id) REFERENCES found_items (found_item_id) ON DELETE CASCADE,
     CONSTRAINT fk_user_claims FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
+
+
+-- Departments
+INSERT INTO departments (department_code, department_name) VALUES
+  ('CEIT', 'College of Engineering and Information Technology'),
+  ('COED', 'College of Education'),
+  ('CABA', 'College of Accountancy and Business Administration'),
+  ('CAS',  'College of Arts and Sciences'),
+  ('CPAG', 'College of Public Administration and Governance');
+
+-- Courses
+INSERT INTO courses (department_id, course_code, course_name)
+VALUES
+    -- CEIT
+    (1, 'BSIT', 'Bachelor of Science in Information Technology'),
+    (1, 'BSEE', 'Bachelor of Science in Electrical Engineering'),
+    (1, 'BSCE', 'Bachelor of Science in Civil Engineering'),
+
+    -- COED
+    (2, 'BECEd', 'Bachelor of Early Childhood Education'),
+    (2, 'BSEd-English', 'Bachelor of Secondary Education major in English'),
+    (2, 'BSEd-Filipino', 'Bachelor of Secondary Education major in Filipino'),
+    (2, 'BSEd-Math', 'Bachelor of Secondary Education major in Mathematics'),
+    (2, 'BSEd-Science', 'Bachelor of Secondary Education major in Science'),
+    (2, 'BSEd-SS', 'Bachelor of Secondary Education major in Social Studies'),
+
+    -- CABA
+    (3, 'BSA', 'Bachelor of Science in Accountancy'),
+    (3, 'BSBA-HRM', 'Bachelor of Science in Business Administration major in Human Resource Management'),
+    (3, 'BSBA-FM', 'Bachelor of Science in Business Administration major in Financial Management'),
+    (3, 'BSBA-MM', 'Bachelor of Science in Business Administration major in Marketing Management'),
+
+    -- CAS
+    (4, 'BS Psychology', 'Bachelor of Science in Psychology'),
+    (4, 'BA Communication', 'Bachelor of Arts in Communication'),
+    (4, 'BSSW', 'Bachelor of Science in Social Work'),
+
+    -- CPAG
+    (5, 'BPA', 'Bachelor of Public Administration');
+
+-- Allowed only to register as admin
+INSERT INTO allowed_admin_numbers (admin_number, full_name)
+VALUES ('ADMIN-0001', 'Juan Dela Cruz');
